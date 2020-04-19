@@ -85,11 +85,11 @@ export default {
         author: this.authUser.displayName,
         id: null,
         seen: false
-      }).then(function (docRef) {
+      }).then(function (doc) {
         db.collection('chat')
-          .doc(docRef.id)
+          .doc(doc.id)
           .update({
-            id: docRef.id
+            id: doc.id
           })
       })
       this.showChat()
