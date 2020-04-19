@@ -17,11 +17,11 @@
                 </div>
               </div>
               <div class="inbox_chat">
-                <div class="chat_list active_chat">
+                <div @click="showChat()" class="chat_list active_chat">
                   <div class="chat_people">
                     <div class="chat_img"> <img src="https://ptetutorials.com/images/user-profile.png" alt="sunil"> </div>
                     <div class="chat_ib">
-                      <h5>Mohammed <span class="chat_date">April 14</span></h5>
+                      <h5>{{userName}} <span class="chat_date">{{chatTime}}</span></h5>
                       <p>email:mohammed@gmail.com</p>
                        <p class="messages-counter"><span class="msgs"> {{messages.length}}</span> Messages</p>
                     </div>
@@ -39,10 +39,13 @@
                       <span class="time_date"> {{message.author}} |  {{ message.createdAt }}</span></div>
                   </div>
                 </div>
+
+                  <div v-if="!showSeen" class="text-right">{{userName}} seen your message<i class="fas fa-eye mr-4"></i></div>
+
               </div>
               <div class="type_msg">
                 <div class="input_msg_write">
-                  <input @keyup.enter="saveMessage" v-model="message" type="text" class="write_msg" placeholder="Type a message" />
+                  <input @click="showChat()" @keyup.enter="saveMessage" v-model="message" type="text" class="write_msg" placeholder="Type a message" />
                   <button @click.prevent="saveMessage()" class="msg_send_btn" type="button"><i class="fas fa-paper-plane" aria-hidden="true"></i></button>
                 </div>
               </div>
@@ -64,7 +67,10 @@ export default {
     return {
       message: null,
       messages: [],
-      authUser: {}
+      authUser: {},
+      showSeen: false,
+      userName: '',
+      chatTime: ''
     }
   },
   methods: {
@@ -76,10 +82,17 @@ export default {
       db.collection('chat').add({
         message: this.message,
         createdAt: moment(this.messages.timestamp).format('LTS'),
-        author: this.authUser.displayName
-      }).then(() => {
-        this.scrollToBottom()
+        author: this.authUser.displayName,
+        id: null,
+        seen: false
+      }).then(function (docRef) {
+        db.collection('chat')
+          .doc(docRef.id)
+          .update({
+            id: docRef.id
+          })
       })
+      this.showChat()
       this.message = null
     },
     fechMessages () {
@@ -88,11 +101,33 @@ export default {
         querySnapshot.forEach(doc => {
           allMessages.push(doc.data())
         })
+        allMessages.forEach(msg => {
+          this.chatTime = msg.createdAt
+          if (msg.author !== this.authUser.displayName) {
+            this.userName = msg.author
+            console.log(this.userName)
+          }
+          if (msg.author === this.authUser.displayName) {
+            !msg.seen ? (this.showSeen = true) : (this.showSeen = false)
+          }
+        })
         this.messages = allMessages
         setTimeout(() => {
           this.scrollToBottom()
         }, 1000)
       })
+    },
+    showChat () {
+      this.messages.forEach(msg => {
+        if (msg.author !== this.authUser.displayName) {
+          db.collection('chat')
+            .doc(msg.id)
+            .update({
+              seen: true
+            })
+        }
+      })
+      console.log('259181')
     }
   },
   created () {
